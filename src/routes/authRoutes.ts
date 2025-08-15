@@ -2,7 +2,7 @@ import { Router } from 'express'
 import type { Request, Response } from 'express'
 import { body, param } from 'express-validator'
 import { authenticate } from '../middleware/auth'
-import { generateJWT, signJwt } from '../utils/jwt'
+import { generateJWT, JwtPayload, signJwt } from '../utils/jwt'
 import { hashPassword } from '../utils/auth'
 import jwt from 'jsonwebtoken'
 import { randomUUID } from 'crypto'
@@ -10,109 +10,120 @@ import { randomUUID } from 'crypto'
 const authRoutes = Router()
 
 // authRoutes.use(authenticate);
+type Client = {
+    id: string;
+    name: string;
+    email: string;
+    user: string;
+    password: string;
+}
 
-authRoutes.get('/', async (req: Request, res: Response) => {
+const client: Client = {
+    id: 'cc-73037294',
+    name: 'Cristhian',
+    email: 'cristhian@example.com',
+    user: 'ccustodio',
+    password: 'mi_contraseña_secreta'
+}
+
+
+
+authRoutes.post('/login', async (req: Request, res: Response) => {
     try {
-        const accessToken = jwt.sign({
-            id: 'aasdasd'
-        }, process.env.JWT_SECRET, {
-            expiresIn: "30m",
+
+        const user = req.body.user;
+        const password = req.body.password;
+
+        let accessToken = '';
+        if (user === client.user && password === client.password) {
+            //return res.json(client);
+            const sessionId = randomUUID();
+            // Generar JWT de acceso
+            accessToken = signJwt({
+                userId: client.id,
+                email: client.email,
+                type: 'access',
+            }, {
+                ttl: '3m',
+                subject: client.id,
+                sessionId,
+                audience: 'api',
+            });
+
+            // Generar refresh token
+            const refreshToken = signJwt({
+                userId: client.id,
+                email: client.email,
+                type: 'refresh',
+            }, {
+                ttl: '30d',
+                subject: client.id,
+                sessionId,
+                audience: 'auth',
+            });
+
+            // Setear cookie segura para refresh token
+            res.cookie('refresh_token', refreshToken, {
+                httpOnly: true,
+                secure: true,
+                sameSite: 'strict',
+                domain: 'localhost',
+                path: '/',
+            });
+        } else {
+            throw new Error("Credenciales no correctas");
+        }
+        return res.status(200).json({
+            token: accessToken
         });
-
-
-        res.cookie('token', accessToken, {
-            httpOnly: true,
-            secure: true,
-            sameSite: 'strict',
-            maxAge: 1000 * 60 * 15 //15 min
-        });
-
-
-        const refresh_token = jwt.sign({
-            id: 'ccustodio',
-            nombre: 'Cristhian',
-            apellido: 'Custodio',
-        }, process.env.JWT_SECRET, {
-            expiresIn: "30d",
-        });
-        res.cookie('refresh_token', refresh_token, {
-            httpOnly: true,
-            secure: true,
-            sameSite: 'strict',
-            domain: 'localhost',
-            path: '/',
-
-        });
-        res.status(200).json({ message: 'Create account route with token in HttpOnly cookie', refresh_token })
     } catch (error) {
-        res.status(500).json({ message: 'Internal server error' })
+        return res.status(500).json({
+            error: true,
+            code: 500,
+            message: error.message
+        })
     }
 });
 
-authRoutes.get("/token", async (req: Request, res: Response) => {
+authRoutes.post("/refresh", async (req: Request, res: Response) => {
     try {
-        const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImNjdXN0b2RpbyIsIm5vbWJyZSI6IkNyaXN0aGlhbiIsImFwZWxsaWRvIjoiQ3VzdG9kaW8iLCJpYXQiOjE3NTUyMjU5MDMsImV4cCI6MTc1NTI1MTEwM30.6tEFWT69n-PUXE3N-WMAOuhC518PXeNVvr6_1cH0a3s";
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        res.status(200).json({ message: 'Token generated', token, decoded })
-    } catch (error) {
-        res.status(500).json({ message: 'Internal server error', error: error.message })
-    }
-});
-authRoutes.get("/password", async (req: Request, res: Response) => {
-    try {
-        const newPassword = await hashPassword("mi_nueva_contraseña");
-
-        res.status(200).json({ message: 'Password hashed', newPassword })
-    } catch (error) {
-        res.status(500).json({ message: 'Internal server error', error: error.message })
-    }
-});
-authRoutes.get('/tokenizacion', async (req: Request, res: Response) => {
-    try {
-        // Simulación de usuario autenticado (ajusta según tu lógica real)
-        const user = { id: 'user-123', email: 'usuario@ejemplo.com' };
+        const refreshToken = req.cookies?.refresh_token;
+        console.log(req.cookies);
+        
+        if (!refreshToken) {
+            return res.status(401).json({
+                error: true,
+                code: 401,
+                message: 'No refresh token provided'
+            });
+        }
         const sessionId = randomUUID();
-
-        // Generar access token para enviar en cada peticion
+        const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
+        if (typeof decoded !== "object" || decoded === null) {
+            throw new Error("Token inválido");
+        }
+        const payload = decoded as JwtPayload;
         const accessToken = signJwt({
-            userId: user.id,
-            email: user.email,
+            userId: payload.userId,
+            email: payload.email,
             type: 'access',
         }, {
-            ttl: '15m',
-            subject: user.id,
+            ttl: '10m',
+            subject: payload.userId,
             sessionId,
             audience: 'api',
         });
 
-        // Generar refresh token
-        const refreshToken = signJwt({
-            userId: user.id,
-            type: 'refresh',
-        }, {
-            ttl: '30d',
-            subject: user.id,
-            sessionId,
-            audience: 'auth',
-        });
-
-        // Setear cookie segura para refresh token
-        res.cookie('refresh_token', refreshToken, {
-            httpOnly: true,
-            secure: true,
-            sameSite: 'strict',
-            domain: 'localhost',
-            path: '/',
-        });
-
-        // Devolver access token en el body
         return res.status(200).json({
-            accessToken,
-            refreshToken,
-            user: { id: user.id, email: user.email },
+            accessToken: accessToken
         });
     } catch (error) {
-        return res.status(500).json({ message: 'Error generando tokens', error: error.message });
+        return res.status(500).json({
+            error: true,
+            code: 500,
+            message: error.message
+        });
     }
 });
+
 export default authRoutes

@@ -7,8 +7,12 @@ type JwtOptions = {
     sessionId: string;
     audience: string;
 };
-
-export function signJwt(payload: object, options: JwtOptions): string {
+export type JwtPayload = {
+    userId: string;
+    email: string;
+    type: 'access' | 'refresh';
+}
+export function signJwt(payload: JwtPayload, options: JwtOptions): string {
     // jsonwebtoken acepta expiresIn como string ("15m", "7d") o number (segundos)
     const signOptions: jwt.SignOptions = {
         expiresIn: options.ttl,

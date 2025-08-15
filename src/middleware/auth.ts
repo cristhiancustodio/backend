@@ -16,13 +16,15 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
         const error = new Error('No Autorizado')
         return res.status(401).json({error: error.message})
     }
-
+    
     const [, token] = bearer.split(' ')
     
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET)
         
-        if(typeof decoded === 'object' && decoded.id) {
+        
+        
+        if(typeof decoded === 'object' && decoded.userId) {
             next();
             /*const user = await User.findById(decoded.id).select('_id name email')
             if(user) {
@@ -31,6 +33,8 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
             } else {
                 res.status(500).json({error: 'Token No Válido'})
             }*/
+        }else{
+            return res.status(500).json({error: 'Token No Válido'})
         }
     } catch (error) {
         res.status(500).json({error: 'Token No Válido'})
