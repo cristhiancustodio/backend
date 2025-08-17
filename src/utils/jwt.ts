@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import { User } from '../Types/User';
 
 // ...
 type JwtOptions = {
@@ -8,8 +9,8 @@ type JwtOptions = {
     audience: string;
 };
 export type JwtPayload = {
-    userId: string;
-    email: string;
+    userId: User['id'];
+    email: User['email'];
     type: 'access' | 'refresh';
 }
 export function signJwt(payload: JwtPayload, options: JwtOptions): string {

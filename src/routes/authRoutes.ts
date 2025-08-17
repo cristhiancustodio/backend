@@ -1,49 +1,56 @@
 import { Router } from 'express'
 import type { Request, Response } from 'express'
 import { body, param } from 'express-validator'
-import { authenticate } from '../middleware/auth'
-import { generateJWT, JwtPayload, signJwt } from '../utils/jwt'
-import { hashPassword } from '../utils/auth'
+
+import { JwtPayload, signJwt } from '../utils/jwt'
+import { checkPassword, hashPassword } from '../utils/auth'
 import jwt from 'jsonwebtoken'
 import { randomUUID } from 'crypto'
 import { AuthEmail } from '../email/AuthEmail'
+import { createUser } from '../models/User'
+import { PrismaClient, Usuarios } from '@prisma/client'
 
+
+const prisma = new PrismaClient();
 const authRoutes = Router()
 
 // authRoutes.use(authenticate);
-type Client = {
-    id: string;
-    name: string;
-    email: string;
-    user: string;
-    password: string;
-    confirmed: boolean;
-}
 
-const client: Client = {
-    id: 'cc-73037294',
-    name: 'Cristhian',
-    email: 'cristhian@example.com',
-    user: 'ccustodio',
-    password: 'mi_contraseña_secreta',
-    confirmed: false,
-}
+const confirmedEmail = async (email: Usuarios['email'], user: Usuarios['usuario'], id: Usuarios['id']) => {
+    const code = Math.floor(100000 + Math.random() * 900000) + '';
 
-const confirmedEmail = (email: Client['email'], user: Client['user']) => {
+    await prisma.token.create({
+        data: {
+            token: code,
+            idUsuario: id
+        }
+    })
     AuthEmail.sendConfirmationEmail({
         email: email,
-        name: user
+        name: user,
+        code: code
     })
 }
 
-authRoutes.post("/sendEmail", (req: Request, res: Response) => {
+authRoutes.post("/newCode", async (req: Request, res: Response) => {
     try {
-        const { email, user } = req.body;
-        confirmedEmail(email, user);
+        const { email } = req.body;
+        const user = await prisma.usuarios.findFirst({ where: { email } });
+
+        if (!user) {
+            return res.status(404).json({
+                error: true,
+                code: 404,
+                message: 'Usuario no encontrado'
+            });
+        }
+
+        await confirmedEmail(email, user.usuario, user.id);
+
         return res.status(200).json({
             error: false,
             code: 200,
-            message: 'Confirmation email sent'
+            message: 'Nuevo codigo enviado'
         });
     } catch (error) {
         return res.status(500).json({
@@ -54,15 +61,17 @@ authRoutes.post("/sendEmail", (req: Request, res: Response) => {
     }
 });
 
-authRoutes.post("/register", (req: Request, res: Response) => {
+authRoutes.post("/register", async (req: Request, res: Response) => {
     try {
-        const { email, user, password } = req.body;
-        if (!email.trim() || !user.trim() || !password.trim()) {
+        const { name, apellido, email, usuario, password } = req.body;
+        if (!name.trim() || !apellido.trim() || !email.trim() || !usuario.trim() || !password.trim()) {
             throw new Error("Faltan datos");
         }
-
-        const hashedPassword = hashPassword(password);
-        confirmedEmail(email, user);
+        const hashedPassword = await hashPassword(password);
+        const data = await createUser({ name, apellido, email, usuario, password: hashedPassword });
+        if (data) {
+            await confirmedEmail(email, usuario, data.id);
+        }
 
         // Aquí iría la lógica para registrar al usuario
         return res.status(201).json({
@@ -77,12 +86,20 @@ authRoutes.post("/register", (req: Request, res: Response) => {
             message: error.message
         });
     }
-})
-authRoutes.post('/confirmed', (req: Request, res: Response) => {
+});
+
+authRoutes.post('/confirmed', async (req: Request, res: Response) => {
     try {
         const { code } = req.body;
-        if (!code || code !== '123456') {
-            throw new Error("Código no valido");
+        if (!code.trim()) {
+            throw new Error("Falta el código");
+        }
+        const data = await prisma.token.findFirst({ where: { token: code } });
+        if (data) {
+            await prisma.usuarios.update({
+                where: { id: data.idUsuario }, data: { confirmed: true }
+            });
+            await prisma.token.delete({ where: { id: data.id } });
         }
         /**Si el codigo es valido, cambiar el estado de tu campo en al base de datos */
         return res.status(200).json({
@@ -103,18 +120,22 @@ authRoutes.post('/login', async (req: Request, res: Response) => {
         const password = req.body.password;
 
         let accessToken = '';
-        if (user === client.user && password === client.password) {
 
-            
+        const client = await prisma.usuarios.findFirst({
+            where: { usuario: user },
+            select: { id: true, password: true, email: true, confirmed: true },
+        });
+        if (!client) {
+            throw new Error("Usuario no encontrado");
+        }
+        const validatePassword = await checkPassword(password, client.password);
+        if (validatePassword) {
             if (client.confirmed === false) {
-
+                await confirmedEmail(client.email, user, client.id);
                 return res.status(401).json({
                     message: 'La cuenta aun no ha sido confirmada, por favor verifica tu correo electrónico.'
                 });
-
             }
-
-            //return res.json(client);
             const sessionId = randomUUID();
             // Generar JWT de acceso
             accessToken = signJwt({
@@ -122,8 +143,8 @@ authRoutes.post('/login', async (req: Request, res: Response) => {
                 email: client.email,
                 type: 'access',
             }, {
-                ttl: '3m',
-                subject: client.id,
+                ttl: '15m',
+                subject: client.id + '',
                 sessionId,
                 audience: 'api',
             });
@@ -135,11 +156,14 @@ authRoutes.post('/login', async (req: Request, res: Response) => {
                 type: 'refresh',
             }, {
                 ttl: '30d',
-                subject: client.id,
+                subject: client.id + '',
                 sessionId,
                 audience: 'auth',
             });
-
+            await prisma.usuarios.update({
+                where: { id: client.id },
+                data: { user_token: refreshToken }
+            })
             // Setear cookie segura para refresh token
             res.cookie('refresh_token', refreshToken, {
                 httpOnly: true,
@@ -149,7 +173,7 @@ authRoutes.post('/login', async (req: Request, res: Response) => {
                 path: '/',
             });
         } else {
-            throw new Error("Credenciales no correctas");
+            throw new Error("Contraseña no correctas");
         }
         return res.status(200).json({
             token: accessToken
@@ -165,9 +189,19 @@ authRoutes.post('/login', async (req: Request, res: Response) => {
 
 authRoutes.post("/refresh", async (req: Request, res: Response) => {
     try {
-        const refreshToken = req.cookies?.refresh_token;
-        console.log(req.cookies);
+        const refreshToken = req.cookies?.refresh_token || '';
 
+        //Busco el refresh token en la bd si existe
+        const data = await prisma.usuarios.findFirst({
+            where: { user_token: refreshToken }
+        });
+        if (!data) {
+            return res.status(401).json({
+                error: true,
+                code: 401,
+                message: 'Invalid refresh token'
+            });
+        }
         if (!refreshToken) {
             return res.status(401).json({
                 error: true,
@@ -186,8 +220,8 @@ authRoutes.post("/refresh", async (req: Request, res: Response) => {
             email: payload.email,
             type: 'access',
         }, {
-            ttl: '10m',
-            subject: payload.userId,
+            ttl: '15m',
+            subject: payload.userId + '',
             sessionId,
             audience: 'api',
         });
@@ -204,8 +238,16 @@ authRoutes.post("/refresh", async (req: Request, res: Response) => {
     }
 });
 
-authRoutes.post('/logout', (req: Request, res: Response) => {
+authRoutes.post('/logout', async (req: Request, res: Response) => {
     try {
+        const refreshToken = req.cookies?.refresh_token || '';
+        const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
+        const payload = decoded as JwtPayload;
+        await prisma.usuarios.update({
+            where: { id: payload.userId },
+            data: { user_token: null }
+        });
+        // Borrar cookie de refresh token
         res.clearCookie('refresh_token');
         return res.status(200).json({
             message: 'Logged out successfully'
