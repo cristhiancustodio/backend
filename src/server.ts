@@ -21,7 +21,6 @@ app.use(cors(corsConfig))
 // Leer datos de formularios
 app.use(express.json({ limit: '1mb' }));
 app.use(cookieParser());
-// app.use(pinoHttp());
 // Logging
 app.use(morgan('dev'))
 

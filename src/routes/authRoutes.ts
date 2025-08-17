@@ -6,6 +6,7 @@ import { generateJWT, JwtPayload, signJwt } from '../utils/jwt'
 import { hashPassword } from '../utils/auth'
 import jwt from 'jsonwebtoken'
 import { randomUUID } from 'crypto'
+import { AuthEmail } from '../email/AuthEmail'
 
 const authRoutes = Router()
 
@@ -16,6 +17,7 @@ type Client = {
     email: string;
     user: string;
     password: string;
+    confirmed: boolean;
 }
 
 const client: Client = {
@@ -23,11 +25,77 @@ const client: Client = {
     name: 'Cristhian',
     email: 'cristhian@example.com',
     user: 'ccustodio',
-    password: 'mi_contraseña_secreta'
+    password: 'mi_contraseña_secreta',
+    confirmed: false,
 }
 
+const confirmedEmail = (email: Client['email'], user: Client['user']) => {
+    AuthEmail.sendConfirmationEmail({
+        email: email,
+        name: user
+    })
+}
 
+authRoutes.post("/sendEmail", (req: Request, res: Response) => {
+    try {
+        const { email, user } = req.body;
+        confirmedEmail(email, user);
+        return res.status(200).json({
+            error: false,
+            code: 200,
+            message: 'Confirmation email sent'
+        });
+    } catch (error) {
+        return res.status(500).json({
+            error: true,
+            code: 500,
+            message: error.message
+        });
+    }
+});
 
+authRoutes.post("/register", (req: Request, res: Response) => {
+    try {
+        const { email, user, password } = req.body;
+        if (!email.trim() || !user.trim() || !password.trim()) {
+            throw new Error("Faltan datos");
+        }
+
+        const hashedPassword = hashPassword(password);
+        confirmedEmail(email, user);
+
+        // Aquí iría la lógica para registrar al usuario
+        return res.status(201).json({
+            error: false,
+            code: 201,
+            message: 'Usuario registrado, hemos enviado un email de confirmación a tu correo'
+        });
+    } catch (error) {
+        return res.status(500).json({
+            error: true,
+            code: 500,
+            message: error.message
+        });
+    }
+})
+authRoutes.post('/confirmed', (req: Request, res: Response) => {
+    try {
+        const { code } = req.body;
+        if (!code || code !== '123456') {
+            throw new Error("Código no valido");
+        }
+        /**Si el codigo es valido, cambiar el estado de tu campo en al base de datos */
+        return res.status(200).json({
+            message: 'Confirmated email'
+        });
+    } catch (error) {
+        return res.status(500).json({
+            error: true,
+            code: 500,
+            message: error.message
+        })
+    }
+});
 authRoutes.post('/login', async (req: Request, res: Response) => {
     try {
 
@@ -36,6 +104,16 @@ authRoutes.post('/login', async (req: Request, res: Response) => {
 
         let accessToken = '';
         if (user === client.user && password === client.password) {
+
+            
+            if (client.confirmed === false) {
+
+                return res.status(401).json({
+                    message: 'La cuenta aun no ha sido confirmada, por favor verifica tu correo electrónico.'
+                });
+
+            }
+
             //return res.json(client);
             const sessionId = randomUUID();
             // Generar JWT de acceso
@@ -89,7 +167,7 @@ authRoutes.post("/refresh", async (req: Request, res: Response) => {
     try {
         const refreshToken = req.cookies?.refresh_token;
         console.log(req.cookies);
-        
+
         if (!refreshToken) {
             return res.status(401).json({
                 error: true,
@@ -116,6 +194,21 @@ authRoutes.post("/refresh", async (req: Request, res: Response) => {
 
         return res.status(200).json({
             accessToken: accessToken
+        });
+    } catch (error) {
+        return res.status(500).json({
+            error: true,
+            code: 500,
+            message: error.message
+        });
+    }
+});
+
+authRoutes.post('/logout', (req: Request, res: Response) => {
+    try {
+        res.clearCookie('refresh_token');
+        return res.status(200).json({
+            message: 'Logged out successfully'
         });
     } catch (error) {
         return res.status(500).json({
