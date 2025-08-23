@@ -88,6 +88,12 @@ authRoutes.post("/register", async (req: Request, res: Response) => {
     }
 });
 
+/**Pending */
+
+authRoutes.put('/resetPassword', async (req: Request, res: Response) => {});
+
+
+
 authRoutes.post('/confirmed', async (req: Request, res: Response) => {
     try {
         const { code } = req.body;

@@ -1,28 +1,24 @@
-/*import { categories } from "./data/categories";
-import { products } from "./data/products";
+
 import { PrismaClient } from '@prisma/client'
+import { users } from './data/users'
 
 const prisma = new PrismaClient()
 
 async function main() {
     try {
-        await prisma.category.createMany({
-            data: categories
-        })
-        await prisma.product.createMany({
-            data: products
+        await prisma.usuarios.createMany({
+            data: users
         })
     } catch (error) {
-        console.log(error)
+        // console.log(error)
     }
 }
-
 main()
     .then(async () => {
         await prisma.$disconnect()
     })
     .catch(async (e) => {
-        console.error(e)
+        // console.error(e)
         await prisma.$disconnect()
-        process.exit(1)
-    })*/
+        // process.exit(1)
+    })
