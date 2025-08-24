@@ -3,7 +3,8 @@ import { body, param } from 'express-validator'
 import { PrismaClient } from '@prisma/client'
 import { authenticate } from '../middleware/auth'
 import { handleInputErrors } from '../middleware/validation'
-import { AuthController } from '../controllers/authController'
+import { AuthController } from '../controllers/AuthController'
+
 
 
 const authRoutes = Router()

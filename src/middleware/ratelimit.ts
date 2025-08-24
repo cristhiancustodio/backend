@@ -1,4 +1,4 @@
-import rateLimit from 'express-rate-limit';
+/*import rateLimit from 'express-rate-limit';
 
 export const rateLimiterLogin = rateLimit({
     windowMs: 60 * 1000,
@@ -13,4 +13,4 @@ export const rateLimiterRefresh = rateLimit({
     max: 30,
     standardHeaders: true,
     legacyHeaders: false,
-});
+});*/
