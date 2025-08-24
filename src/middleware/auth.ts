@@ -7,14 +7,19 @@ import type { User } from '../Types/User'
 declare global {
     namespace Express {
         interface Request {
-            user?: User["usuario"]
+            user?:{
+                id?: User["id"],
+                username?: User["usuario"]
+            }
         }
     }
 }
 
 export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
-    const bearer = req.headers.authorization
-    if (!bearer) {
+    const bearer = req.headers.authorization;
+    const refreshToken = req.cookies?.refresh_token || '';
+        
+    if (!bearer || refreshToken == '') {
         const error = new Error('No Autorizado')
         return res.status(401).json({ error: error.message })
     }
@@ -26,11 +31,14 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
         if (typeof decoded === 'object' && decoded.userId) {
             const user = await prisma.usuarios.findUnique({
                 where: { id: decoded.userId },
-                select: { id: true, name: true, apellido: true },
+                select: { id: true, name: true, apellido: true, usuario: true },
             });
             if (user) {
-                req.user = user.name
-                next()
+                req.user =  {
+                    id: user.id,
+                    username: user.usuario
+                }
+                return next();
             } else {
                 res.status(500).json({ error: 'Token No Válido' })
             }

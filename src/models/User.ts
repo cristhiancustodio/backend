@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import type { ICreateUser, IUser, User } from '../Types/User';
+import { hashPassword } from '../utils/auth';
 
 const prisma = new PrismaClient();
 
@@ -23,4 +24,12 @@ export const createUser = async (data: ICreateUser): Promise<IUser> => {
         select: { id: true, name: true, apellido: true },
     });
     return user;
+};
+
+export const updatePassword = async (id: User['id'], newPassword: string): Promise<void> => {
+    const hashedPassword = await hashPassword(newPassword);
+    await prisma.usuarios.update({
+        where: { id },
+        data: { password: hashedPassword },
+    });
 };
