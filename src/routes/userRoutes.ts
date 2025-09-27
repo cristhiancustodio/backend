@@ -7,7 +7,7 @@ import { getUserById } from "../models/User";
 
 const userRoutes = Router();
 
-userRoutes.use(authenticate);
+//userRoutes.use(authenticate);
 
 userRoutes.get('/', async (req: Request, res: Response) => {
     try {

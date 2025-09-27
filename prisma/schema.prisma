@@ -5,29 +5,57 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client-js"
-  // output   = "../src/generated/prisma"
+    provider = "prisma-client-js"
+    // output   = "../src/generated/prisma"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+    provider = "postgresql"
+    // url      = env("DATABASE_URL")
+    url      = "postgresql://postgres:123456@localhost:5432/postgres?schema=foro_social"
 }
 
 model Usuarios {
-  id         Int     @id @default(autoincrement())
-  name       String
-  apellido   String
-  usuario    String
-  email      String  @unique
-  password   String
-  confirmed  Boolean @default(false)
-  user_token String?
+    id           Int            @id @default(autoincrement())
+    name         String
+    apellido     String
+    usuario      String
+    email        String         @unique
+    password     String
+    confirmed    Boolean        @default(false)
+    user_token   String?
+    active       Boolean        @default(true)
 }
 
 model Token {
-  id         Int      @id @default(autoincrement())
-  token      String   @unique
-  dateCreate DateTime @default(now())
-  idUsuario  Int
+    id         Int      @id @default(autoincrement())
+    token      String   @unique
+    dateCreate DateTime @default(now())
+    idUsuario  Int
+}
+
+model Comments {
+    idComment     Int          @id @default(autoincrement())
+    idPublication Int
+    content       String
+    likes         Int          @default(0)
+    idReply       Int          @default(0)
+    createdAt     DateTime     @default(now())
+    updatedAt     DateTime?    @updatedAt
+    idUser        Int
+    active        Boolean      @default(true)
+}
+
+model Publications {
+    idPublication Int        @id @default(autoincrement())
+    title         String
+    content       String
+    category      String?
+    tags          String[]
+    likes         Int        @default(0)
+    isAnonymus    Boolean    @default(false)
+    createdAt     DateTime   @default(now())
+    updatedAt     DateTime?  @updatedAt
+    idUser        Int
+    active        Boolean    @default(true)
 }

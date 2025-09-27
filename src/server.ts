@@ -7,6 +7,9 @@ import { corsConfig } from './config/cors'
 import helmet from 'helmet'
 import userRoutes from './routes/userRoutes'
 import cookieParser from 'cookie-parser'
+import postRoutes from './routes/postRoutes'
+
+
 // import { connectDB } from './config/db'
 
 
@@ -28,6 +31,7 @@ app.use(morgan('dev'))
 
 // Routes
 app.use('/api/user', userRoutes)
+app.use('/api/post', postRoutes)
 app.use('/api/auth', authRoutes)
 
 export default app
