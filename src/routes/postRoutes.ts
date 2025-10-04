@@ -13,25 +13,28 @@ postRoutes.post("/", PostController.createPost);
 
 postRoutes.get("/:id", PostController.getPostById);
 
-postRoutes.put("/:id", (req, res) => {
+postRoutes.put("/:id", (req, res) => { });
 
-});
+postRoutes.delete("/:id", (req, res) => { });
 
-postRoutes.delete("/:id", (req, res) => {
-
-});
+postRoutes.put("/:id/like", PostController.likePost);
 
 
+
+
+//Crear nuevo comentario
 postRoutes.post("/:id/comments",
     body('content').notEmpty().withMessage('Content is required'),
-    handleInputErrors,
-    CommentController.createComment);
+    handleInputErrors, CommentController.createComment);
 
-postRoutes.put("/:id/comments/:commentId",
-    CommentController.updateLikesComment);
+//Eliminar comentario
+postRoutes.delete("/:id/comments/:commentId", CommentController.deleteComment);
 
-postRoutes.delete("/:id/comments/:commentId",
-    CommentController.deleteComment);
+postRoutes.put("/:id/comments/:commentId", CommentController.updateComment);
+
+
+//Actualizar likes comentario
+postRoutes.post("/:id/comments/:commentId/like", CommentController.updateLikesComment);
 
 
 

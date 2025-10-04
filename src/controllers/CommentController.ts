@@ -44,27 +44,40 @@ export class CommentController {
     static async updateLikesComment(req, res) {
         try {
             const idComment = +(req.params.commentId || 0);
+            const idPublication = +(req.params.id || 0);
             if (idComment === 0) {
                 return ResponseUtil.error(res, { status: 404, message: 'Comment ID is required' });
             }
-            const content = req.body;
-
-            const find = await prisma.comments.findUnique({ where: { idComment: idComment } });
-
-            if (!find) {
-                return ResponseUtil.error(res, { status: 404, message: 'Comment not found' });
+            const find = await prisma.like.findFirst({ where: { idComment: idComment, userId: 1 } });
+            if (find) {
+                await prisma.like.delete({ where: { idLike: find.idLike } });
+            } else {
+                await prisma.like.create({ data: { idPublication: idPublication, idComment: idComment, userId: 1 } });
             }
-            let likes = content.likes === true ? find.likes + 1 : find.likes - 1;
-
-            const response = await prisma.comments.update({
-                where: { idComment: idComment },
-                data: { likes: likes }
-            });
-            return ResponseUtil.success(res, { message: 'Likes updated successfully', response });
+            return ResponseUtil.success(res, { message: 'Likes updated successfully' });
         } catch (error) {
             return ResponseUtil.error(res, { status: 500, message: 'Internal server error', messageError: error.message });
         }
     }
+
+    static async updateComment(req, res) {
+        try {
+            const idComment = +(req.params.commentId || 0);
+            if (idComment === 0) {
+                return ResponseUtil.error(res, { status: 404, message: 'Comment ID is required' });
+            }
+            const { content } = req.body;
+            const updatedComment = await prisma.comments.update({
+                where: { idComment: idComment },
+                data: { content }
+            });
+            return ResponseUtil.success(res, { message: 'Comment updated successfully', response: updatedComment });
+        } catch (error) {
+            return ResponseUtil.error(res, { status: 500, message: 'Internal server error', messageError: error.message });
+        }
+    }
+
+
     static async getCommentById(req, res) {
         try {
 

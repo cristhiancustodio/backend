@@ -30,8 +30,9 @@ app.use(morgan('dev'))
 
 
 // Routes
+app.use('/api/auth', authRoutes)
+
 app.use('/api/user', userRoutes)
 app.use('/api/post', postRoutes)
-app.use('/api/auth', authRoutes)
 
 export default app

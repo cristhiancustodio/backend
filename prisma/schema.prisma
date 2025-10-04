@@ -16,15 +16,15 @@ datasource db {
 }
 
 model Usuarios {
-    id           Int            @id @default(autoincrement())
-    name         String
-    apellido     String
-    usuario      String
-    email        String         @unique
-    password     String
-    confirmed    Boolean        @default(false)
-    user_token   String?
-    active       Boolean        @default(true)
+    id         Int     @id @default(autoincrement())
+    name       String
+    apellido   String
+    usuario    String
+    email      String  @unique
+    password   String
+    confirmed  Boolean @default(false)
+    user_token String?
+    active     Boolean @default(true)
 }
 
 model Token {
@@ -35,27 +35,50 @@ model Token {
 }
 
 model Comments {
-    idComment     Int          @id @default(autoincrement())
+    idComment     Int       @id @default(autoincrement())
     idPublication Int
     content       String
-    likes         Int          @default(0)
-    idReply       Int          @default(0)
-    createdAt     DateTime     @default(now())
-    updatedAt     DateTime?    @updatedAt
+    likes         Int       @default(0)
+    idReply       Int       @default(0)
+    createdAt     DateTime  @default(now())
+    updatedAt     DateTime? @updatedAt
     idUser        Int
-    active        Boolean      @default(true)
+    active        Boolean   @default(true)
 }
 
 model Publications {
-    idPublication Int        @id @default(autoincrement())
+    idPublication Int       @id @default(autoincrement())
     title         String
     content       String
     category      String?
     tags          String[]
-    likes         Int        @default(0)
-    isAnonymus    Boolean    @default(false)
-    createdAt     DateTime   @default(now())
-    updatedAt     DateTime?  @updatedAt
+    likes         Int       @default(0)
+    isAnonymus    Boolean   @default(false)
+    createdAt     DateTime  @default(now())
+    updatedAt     DateTime? @updatedAt
     idUser        Int
-    active        Boolean    @default(true)
+    active        Boolean   @default(true)
+}
+
+model Like {
+    idLike        String   @id @default(uuid())
+    idPublication Int?
+    idComment     Int?
+    userId        Int
+    createdAt     DateTime @default(now())
+}
+
+model Report {
+    id            String   @id @default(uuid())
+    reason        String
+    idPublication Int?
+    userId        Int
+    createdAt     DateTime @default(now())
+}
+
+model SavedPost {
+    id            String   @id @default(uuid())
+    idPublication Int
+    idUser        Int
+    createdAt     DateTime @default(now())
 }

@@ -42,16 +42,51 @@ export class PostController {
                 return ResponseUtil.error(res, { status: 404, message: 'Post not found' });
             }
 
+
+
+            const likes = await prisma.like.findMany({ where: { idPublication: idPost } });
+            const formatLikesPost = {};
+            const formatLikesComments = {};
+            const formatMeLikesComments = {};
+
+
+            let meLikes = likes.some(like => !like.idComment && like.userId === 1);
+            likes.forEach(like => {
+
+                if (like.idComment) {
+
+                    if (formatLikesComments[like.idComment]) {
+                        formatLikesComments[like.idComment] += 1;
+                    } else {
+                        formatLikesComments[like.idComment] = 1;
+                    }
+                } else {
+                    listaPost.likes += 1;
+
+                }
+                if (like.userId === 1) {
+                    formatMeLikesComments[like.idComment] = true;
+
+                }
+            });
+
+
             const listFormat = {
                 ...listaPost,
+                meLikes,
                 comments: await prisma.comments.findMany({
                     where: {
                         active: true,
                         idPublication: idPost
                     },
-                    orderBy: { createdAt: 'desc' }
+                    orderBy: { createdAt: 'desc' },
                 })
             }
+            listFormat.comments = listFormat.comments.map(comment => ({
+                ...comment,
+                likes: formatLikesComments[comment.idComment] || 0,
+                meLikes: formatMeLikesComments[comment.idComment] || false
+            }));
 
             return ResponseUtil.success(res, {
                 message: 'Post retrieved successfully', response: listFormat
@@ -101,14 +136,31 @@ export class PostController {
                     content
                 }
             });
-
             return ResponseUtil.success(res, { message: 'Post updated successfully', response: updatedPost });
-
         } catch (error) {
             return ResponseUtil.error(res, { status: 500, message: 'Internal server error', messageError: error.message });
         }
     }
+    static async likePost(req, res) {
+        try {
+            const idPost = +(req.params.id || 0);
+            if (idPost === 0) {
+                return ResponseUtil.error(res, { status: 404, message: 'Post ID is required' });
+            }
 
+            const find = await prisma.like.findFirst({
+                where: { idPublication: idPost, userId: 1, OR: [{ idComment: null }, { idComment: 0 }] }
+            });
+            if (find) {
+                await prisma.like.delete({ where: { idLike: find.idLike } });
+            } else {
+                await prisma.like.create({ data: { idPublication: idPost, userId: 1 } });
+            }
+            return ResponseUtil.success(res, { message: 'Likes updated successfully' });
+        } catch (error) {
+            return ResponseUtil.error(res, { status: 500, message: 'Internal server error', messageError: error.message });
+        }
+    }
     static async deletePost(req, res) {
         try {
             const idPost = +(req.params.id || 0);
