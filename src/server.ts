@@ -25,9 +25,8 @@ app.use(cors(corsConfig))
 app.use(express.json({ limit: '1mb' }));
 app.use(cookieParser());
 // Logging
-app.use(morgan('dev'))
-
-
+app.use(morgan('dev'));
+app.disable("x-powered-by"); //deshabilitamos que se muestre que usamos express
 
 // Routes
 app.use('/api/auth', authRoutes)

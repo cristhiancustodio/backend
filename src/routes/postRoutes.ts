@@ -4,8 +4,11 @@ import { PostController } from "../controllers/PostController";
 import { CommentController } from "../controllers/CommentController";
 import { body } from "express-validator";
 import { handleInputErrors } from "../middleware/validation";
+import { authenticate } from "../middleware/auth";
 
 const postRoutes = Router();
+
+//postRoutes.use(authenticate);
 
 postRoutes.get("/", PostController.getAllPosts);
 

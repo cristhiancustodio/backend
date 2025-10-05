@@ -1,5 +1,5 @@
 import { prisma } from "../lib/prisma";
-import ResponseUtil from "../utils/Response";
+import ResponseUtil from "../utils/response";
 
 
 export class CommentController {
@@ -10,12 +10,17 @@ export class CommentController {
             if (idPost === 0) {
                 return ResponseUtil.error(res, { status: 404, message: 'Post ID is required' });
             }
-            const { content } = req.body;
+            const { content, isReply, idReply } = req.body;
+
+            if (isReply && !idReply) {
+                return ResponseUtil.error(res, { status: 400, message: 'Reply ID is required for replies' });
+            }
             const response = await prisma.comments.create({
                 data: {
                     content,
                     idPublication: idPost,
                     idUser: 1,
+                    ...(isReply && { idReply })
                 }
             });
 

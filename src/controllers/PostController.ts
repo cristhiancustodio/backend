@@ -1,11 +1,13 @@
+import { Comments } from "@prisma/client";
 import { prisma } from "../lib/prisma";
-import ResponseUtil from "../utils/Response";
+import ResponseUtil from "../utils/response";
 
 export class PostController {
     static async getAllPosts(req, res) {
         try {
             const listaPost = await prisma.publications.findMany({
-                where: { active: true, idUser: req?.id || 1 }
+                where: { active: true, idUser: req?.id || 1 },
+                orderBy: { createdAt: 'desc' },
             });
             const comments = await prisma.comments.findMany({
                 where: {
@@ -13,10 +15,31 @@ export class PostController {
                     idPublication: { in: listaPost.map(post => post.idPublication) }
                 },
             });
-            const newList = listaPost.map((post) => {
 
+            const likes = await prisma.like.findMany({
+                where: {
+                    idPublication: { in: listaPost.map(post => post.idPublication) },
+                    idComment: null
+                },
+                select: { idLike: true, idPublication: true, idComment: true, userId: true }
+            });
+
+            let countlikes = {};
+            likes.forEach(element => {
+                if (countlikes[element.idPublication]) {
+                    countlikes[element.idPublication].count += 1;
+                } else {
+                    countlikes[element.idPublication] = { count: 1 };
+                }
+
+                if (element.userId === 1) {
+                    countlikes[element.idPublication].meLikes = true;
+                }
+            });
+
+            const newList = listaPost.map((post) => {
                 let comm = comments.filter(comment => comment.idPublication === post.idPublication);
-                return { ...post, comments: comm };
+                return { ...post, comments: comm, likes: countlikes[post.idPublication]?.count || 0, meLikes: countlikes[post.idPublication]?.meLikes || false };
             });
 
             return ResponseUtil.success(res, { message: 'List of posts', response: newList });
@@ -42,13 +65,10 @@ export class PostController {
                 return ResponseUtil.error(res, { status: 404, message: 'Post not found' });
             }
 
-
-
             const likes = await prisma.like.findMany({ where: { idPublication: idPost } });
             const formatLikesPost = {};
             const formatLikesComments = {};
             const formatMeLikesComments = {};
-
 
             let meLikes = likes.some(like => !like.idComment && like.userId === 1);
             likes.forEach(like => {
@@ -66,26 +86,26 @@ export class PostController {
                 }
                 if (like.userId === 1) {
                     formatMeLikesComments[like.idComment] = true;
-
                 }
             });
-
+            const comments = await prisma.comments.findMany({
+                where: {
+                    active: true,
+                    idPublication: idPost
+                },
+                orderBy: { createdAt: 'desc' },
+            })
 
             const listFormat = {
                 ...listaPost,
                 meLikes,
-                comments: await prisma.comments.findMany({
-                    where: {
-                        active: true,
-                        idPublication: idPost
-                    },
-                    orderBy: { createdAt: 'desc' },
-                })
+                comments: comments.filter(comment => !comment.idReply)
             }
             listFormat.comments = listFormat.comments.map(comment => ({
                 ...comment,
                 likes: formatLikesComments[comment.idComment] || 0,
-                meLikes: formatMeLikesComments[comment.idComment] || false
+                meLikes: formatMeLikesComments[comment.idComment] || false,
+                replys: PostController.formatCommentsReplys(comments, comment.idComment, formatMeLikesComments, formatLikesComments)
             }));
 
             return ResponseUtil.success(res, {
@@ -94,6 +114,17 @@ export class PostController {
         } catch (error) {
             return ResponseUtil.error(res, { status: 500, message: 'Internal server error', messageError: error.message });
         }
+    }
+
+    //Metodo para formatear los comentarios y sus respectivas respuestas
+    static formatCommentsReplys(comments: Comments[], idComment: Comments['idComment'], formatMeLikesComments: any, formatLikesComments: any) {
+        const replys = comments.filter(c => c.idReply === idComment);
+        return replys.map(reply => ({
+            ...reply,
+            meLikes: formatMeLikesComments[reply.idComment] || false,
+            likes: formatLikesComments[reply.idComment] || 0,
+            replys: PostController.formatCommentsReplys(comments, reply.idComment, formatMeLikesComments, formatLikesComments)
+        }));
     }
 
     static async createPost(req, res) {

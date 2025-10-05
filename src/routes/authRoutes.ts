@@ -4,6 +4,7 @@ import { PrismaClient } from '@prisma/client'
 import { authenticate } from '../middleware/auth'
 import { handleInputErrors } from '../middleware/validation'
 import { AuthController } from '../controllers/AuthController'
+import { rateLimiterLogin, rateLimiterRefresh } from '../middleware/ratelimit'
 
 
 
@@ -16,6 +17,7 @@ const authRoutes = Router()
 authRoutes.post("/newCode", AuthController.newCode);
 
 authRoutes.post('/login',
+    rateLimiterLogin,
     body('email').isEmail().withMessage('Valid email is required'),
     body('password').notEmpty().withMessage('Password is required'),
     handleInputErrors,
@@ -52,7 +54,7 @@ authRoutes.post("/forgot-password",
 /* Endpoint to confirm email with a code */
 authRoutes.post('/confirmed', AuthController.confirmedAccount);
 /** Endpoint to refresh access token */
-authRoutes.post("/refresh", AuthController.refreshToken);
+authRoutes.post("/refresh", rateLimiterRefresh, AuthController.refreshToken);
 
 authRoutes.post('/logout', AuthController.logOut);
 
