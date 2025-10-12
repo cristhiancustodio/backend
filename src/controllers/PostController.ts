@@ -208,4 +208,33 @@ export class PostController {
             return ResponseUtil.error(res, { status: 500, message: 'Internal server error', messageError: error.message });
         }
     }
+
+    static async savePost(req, res) {
+        try {
+            const idPost = +(req.params.id || 0);
+
+            const found = await prisma.savedPost.findFirst({ where: { idPublication: idPost, idUser: 1 } });
+            if (!found) {
+                await prisma.savedPost.create({ data: { idPublication: idPost, idUser: 1 } });
+            } else {
+                await prisma.savedPost.delete({ where: { id: found.id } });
+            }
+            return ResponseUtil.success(res, { message: 'Post saved' });
+        } catch (error) {
+            return ResponseUtil.error(res, { status: 500, message: 'Internal server error', messageError: error.message });
+        }
+    }
+    static async reportPost(req, res) {
+        try {
+            const idPost = +(req.params.id || 0);
+            const found = await prisma.savedPost.findFirst({ where: { idPublication: idPost } });
+            if (!found) {
+                return ResponseUtil.error(res, { status: 422, message: 'Post not found' });
+            }
+            await prisma.report.create({ data: { reason: req.body.reason, idPublication: idPost, userId: 1 } });
+            return ResponseUtil.success(res, { message: 'Reported publication' });
+        } catch (error) {
+            return ResponseUtil.error(res, { status: 500, message: 'Internal server error', messageError: error.message });
+        }
+    }
 }

@@ -22,7 +22,11 @@ postRoutes.delete("/:id", (req, res) => { });
 
 postRoutes.put("/:id/like", PostController.likePost);
 
-
+postRoutes.post("/:id/save", PostController.savePost);
+postRoutes.post("/:id/report", 
+    body("reason").notEmpty().withMessage("Reason is required"),
+    handleInputErrors,
+    PostController.reportPost);
 
 
 //Crear nuevo comentario
@@ -34,7 +38,6 @@ postRoutes.post("/:id/comments",
 postRoutes.delete("/:id/comments/:commentId", CommentController.deleteComment);
 
 postRoutes.put("/:id/comments/:commentId", CommentController.updateComment);
-
 
 //Actualizar likes comentario
 postRoutes.post("/:id/comments/:commentId/like", CommentController.updateLikesComment);
