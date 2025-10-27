@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken'
 import { prisma } from '../lib/prisma'
 import type { User } from '../Types/User'
 
-declare global {
+/*declare global {
     namespace Express {
         interface Request {
             user?:{
@@ -13,7 +13,7 @@ declare global {
             }
         }
     }
-}
+}*/
 
 export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
     const bearer = req.headers.authorization;

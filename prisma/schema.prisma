@@ -11,12 +11,12 @@ generator client {
 
 datasource db {
     provider = "postgresql"
-    // url      = env("DATABASE_URL")
-    url      = "postgresql://postgres:123456@localhost:5432/postgres?schema=foro_social"
+    url      = env("DATABASE_URL")
+    //url      = "postgresql://postgres:123456@localhost:5432/postgres?schema=foro_social"
 }
 
 model Usuarios {
-    id         Int     @id @default(autoincrement())
+    id         String  @id @default(uuid())
     name       String
     apellido   String
     usuario    String
@@ -31,7 +31,7 @@ model Token {
     id         Int      @id @default(autoincrement())
     token      String   @unique
     dateCreate DateTime @default(now())
-    idUsuario  Int
+    idUsuario  String
 }
 
 model Comments {
@@ -42,7 +42,7 @@ model Comments {
     idReply       Int       @default(0)
     createdAt     DateTime  @default(now())
     updatedAt     DateTime? @updatedAt
-    idUser        Int
+    idUser        String
     active        Boolean   @default(true)
 }
 
@@ -56,7 +56,7 @@ model Publications {
     isAnonymus    Boolean   @default(false)
     createdAt     DateTime  @default(now())
     updatedAt     DateTime? @updatedAt
-    idUser        Int
+    idUser        String
     active        Boolean   @default(true)
 }
 
@@ -64,21 +64,22 @@ model Like {
     idLike        String   @id @default(uuid())
     idPublication Int?
     idComment     Int?
-    userId        Int
+    userId        String
     createdAt     DateTime @default(now())
 }
 
 model Report {
     id            String   @id @default(uuid())
     reason        String
+    details       String?
     idPublication Int?
-    userId        Int
+    userId        String
     createdAt     DateTime @default(now())
 }
 
 model SavedPost {
     id            String   @id @default(uuid())
     idPublication Int
-    idUser        Int
+    idUser        String
     createdAt     DateTime @default(now())
 }

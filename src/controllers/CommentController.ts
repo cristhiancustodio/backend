@@ -19,7 +19,7 @@ export class CommentController {
                 data: {
                     content,
                     idPublication: idPost,
-                    idUser: 1,
+                    idUser: req?.user.id,
                     ...(isReply && { idReply })
                 }
             });
@@ -53,11 +53,11 @@ export class CommentController {
             if (idComment === 0) {
                 return ResponseUtil.error(res, { status: 404, message: 'Comment ID is required' });
             }
-            const find = await prisma.like.findFirst({ where: { idComment: idComment, userId: 1 } });
+            const find = await prisma.like.findFirst({ where: { idComment: idComment, userId: req?.user.id } });
             if (find) {
                 await prisma.like.delete({ where: { idLike: find.idLike } });
             } else {
-                await prisma.like.create({ data: { idPublication: idPublication, idComment: idComment, userId: 1 } });
+                await prisma.like.create({ data: { idPublication: idPublication, idComment: idComment, userId: req?.user.id } });
             }
             return ResponseUtil.success(res, { message: 'Likes updated successfully' });
         } catch (error) {

@@ -27,7 +27,7 @@ userRoutes.get('/', async (req: Request, res: Response) => {
 });
 userRoutes.get('/:id', async (req: Request, res: Response) => {
     try {
-        const id = +req.params.id;
+        const id = req.params.id;
         if (!id) {
             return res.status(400).json({
                 error: true,

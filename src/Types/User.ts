@@ -9,7 +9,7 @@ export interface ICreateUser {
     password: string;
 }
 export interface User {
-    id: number;
+    id: string;
     name: string;
     apellido: string;
     usuario: string;
