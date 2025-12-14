@@ -83,3 +83,35 @@ model SavedPost {
     idUser        String
     createdAt     DateTime @default(now())
 }
+
+model Pais {
+    id     Int    @id @default(autoincrement())
+    nombre String
+    codigo String
+}
+
+model Provincia {
+    id     Int    @id @default(autoincrement())
+    nombre String
+    codigoPais String?
+    idPais Int?
+}
+
+model CategoriaLogistica {
+    id     Int    @id @default(autoincrement())
+    nombre String
+}
+
+model Logistica {
+    id          Int      @id @default(autoincrement())
+    nombre      String
+    descripcion String
+    tipo        String
+    imagen      String?
+    tips        String?
+    mejor_para  String?
+    link_maps   String?
+    idPais      Int
+    idProvincia Int
+    fecha       DateTime @default(now())
+}

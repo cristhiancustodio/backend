@@ -20,3 +20,9 @@ El servidor estará disponible en [http://localhost:3000](http://localhost:3000)
 - `package.json`: Configuración del proyecto Node.js.
 
 Puedes modificar este proyecto para agregar rutas, controladores y lógica de negocio según tus necesidades.
+
+
+## PRISMA
+
+npx prisma db seed
+npx prisma migrate dev

@@ -8,6 +8,7 @@ import helmet from 'helmet'
 import userRoutes from './routes/userRoutes'
 import cookieParser from 'cookie-parser'
 import postRoutes from './routes/postRoutes'
+import logisticRoutes from './routes/logisticRoutes'
 
 
 // import { connectDB } from './config/db'
@@ -33,5 +34,6 @@ app.use('/api/auth', authRoutes)
 
 app.use('/api/user', userRoutes)
 app.use('/api/post', postRoutes)
+app.use('/api/logistic', logisticRoutes)
 
 export default app
