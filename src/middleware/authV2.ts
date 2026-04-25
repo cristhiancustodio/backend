@@ -58,24 +58,25 @@ export const authenticate = (req: Request, res: Response, next: NextFunction) =>
                 issuer: `https://cognito-idp.${region}.amazonaws.com/${userPoolId}`
             },
             (err, decoded: any) => {
-
-                console.log("decode: ", decoded, err);
-
-                if (err || !decoded) {
-                    return res.status(401).json({ error: "Token inválido" });
+                try {
+                    console.log("decode: ", decoded, err);
+                    if (err || !decoded) {
+                        return res.status(401).json({ error: "Token inválido - verifica credenciales" });
+                    }
+                    req.user = {
+                        id: decoded.sub,
+                        username: decoded["cognito:username"],
+                        email: decoded.email
+                    };
+                    return next();
+                } catch (error) {
+                    return res.status(500).json({ error: "Error interno del servidor", messageError: error.message });
                 }
-
-                req.user = {
-                    id: decoded.sub,
-                    username: decoded["cognito:username"],
-                    email: decoded.email
-                };
-                return next();
             }
         );
 
 
     } catch (error) {
-
+        return res.status(500).json({ error: "Error interno del servidor", messageError: error.message });
     }
 };

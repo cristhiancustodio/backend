@@ -150,7 +150,7 @@ export class PostController {
             return ResponseUtil.success(res, { message: 'Post created successfully', response: newPost });
 
         } catch (error) {
-            return error(res, { status: 500, message: 'Internal server error', messageError: error.message });
+            return ResponseUtil.error(res, { status: 500, message: 'Internal server error', messageError: error.message });
         }
     }
 
